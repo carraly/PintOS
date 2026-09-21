@@ -207,6 +207,19 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
+
+  /* Wake every thread whose wake-up time has arrived.  The list
+     is sorted, so all ready threads are at the front. */
+  while (!list_empty (&sleeping_list))
+    {
+      struct thread *t = list_entry (list_front (&sleeping_list),
+                                     struct thread, elem);
+      if (t->wake_time > ticks)
+        break;
+
+      list_pop_front (&sleeping_list);
+      thread_unblock (t);
+    }
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
